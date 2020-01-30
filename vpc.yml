@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Sample CloudFormation template for creating VPC
+
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: '10.0.0.0/16'
+      Tags:
+        - Key: Name
+          Value: cfn-VPC
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: cfn-IGW
+
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: 'ap-northeast-1a'
+      VpcId: !Ref VPC
+      CidrBlock: '10.0.1.0/24'
+      Tags:
+        - Key: Name
+          Value: cfn-Subnet
+
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: cfn-Router
+
+  DefaultRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  Wordpress:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      AvailabilityZone: 'ap-northeast-1a'
+      ImageId: 'ami-011facbea5ec0363b'
+      InstanceType: t2.micro
+      KeyName: 'rvillage-my-key'
+      PrivateIpAddress: '10.0.1.10'
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref WordpressSecurityGroup
+      Tags:
+        - Key: Name
+          Value: cfn-Wordpress
+
+  WordpressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'cfn-SG'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: cfn-SG
+      VpcId: !Ref VPC
+
+  WordpressEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: VPC
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref Wordpress
+
+  WordpressEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt WordpressEIP.AllocationId
+      InstanceId: !Ref Wordpress
+      PrivateIpAddress: '10.0.1.10'

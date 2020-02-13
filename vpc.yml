@@ -61,7 +61,7 @@ Resources:
       AvailabilityZone: 'ap-northeast-1a'
       ImageId: 'ami-011facbea5ec0363b'
       InstanceType: t2.micro
-      KeyName: 'rvillage-my-key'
+      KeyName: 'rvillage-test'
       PrivateIpAddress: '10.0.1.10'
       SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
